@@ -7403,7 +7403,7 @@
                     }
                     query.next = 'target_type';
                 break;
-                case 'select_weapon':debugger;
+                case 'select_weapon':
                     roll.weapon = {
                         elevel: 0,
                         index: -1,
@@ -8195,9 +8195,11 @@
                                 'absorption':[]
                             };
                             clog(cache, defenses, 'actionRoll(defenses)');
+                            roll.has_protections = false;
                             for (let p = 0; p < protections.length; p++) {
                                 for (let i = 0; i < cache.attrdb[protections[p]].length; i++) {
                                     if (cache.attrdb[protections[p]][i].active) {
+                                        roll.has_protections = true;
                                         const protection = cache.attrdb[protections[p]][i];
                                         const ar_index = 
                                             protection.config.findIndex(c => c.name === 'armor rating');
@@ -8250,14 +8252,14 @@
                                                 gap_index !== -1 && roll.attacker.maneuver === 'reduce armor' ? 0.5 : 1;
                                             // Calculate damage against armor_rating.
                                             for (let i = 0; i < damage.hits; i++) {
-                                                damage.taken = Math.max(damage.taken - (
+                                                damage.taken = (Math.max(damage.taken - (
                                                     protections[p] === 'armor' && roll.attacker.weapon.penetrating !== undefined ?
                                                         Math.max(Math.round(defenses.armor_rating * has_gap) - (roll.attacker.weapon.penetrating * 10), 0) :
                                                     protections[p] === 'force field' && roll.attacker.weapon.piercing !== undefined ?
                                                         Math.max(defenses.armor_rating - (roll.attacker.weapon.piercing * 10), 0) :
                                                     protections[p] === 'armor' ? Math.round(defenses.armor_rating * has_gap) : 
                                                     defenses.armor_rating
-                                                ), 0);
+                                                ), 0)) * (roll.attacker.maneuver === 'vital spot' ? 2 : 1);
                                                 // Record damage stopped for Conversion with Escalate.
                                                 if (protections[p] === 'force field' || protections[p] === 'armor') {
                                                     damage.stopped += damage.received - damage.taken;
@@ -8291,6 +8293,10 @@
                                         }
                                     }
                                 }
+                            }
+                            if (!roll.has_protections) {
+                                damage.taken = 
+                                    (damage.taken * (roll.attacker.maneuver === 'vital spot' ? 2 : 1)) * damage.hits;
                             }
                             // Apply Damage, Absorption, and Conversion
                             // Apply Absorption
