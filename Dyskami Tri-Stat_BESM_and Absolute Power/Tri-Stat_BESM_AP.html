@@ -7403,7 +7403,7 @@
                     }
                     query.next = 'target_type';
                 break;
-                case 'select_weapon':
+                case 'select_weapon':debugger;
                     roll.weapon = {
                         elevel: 0,
                         index: -1,
@@ -7448,6 +7448,10 @@
                             cache.attrdb.weapon[roll.weapon.index].name;
                         roll.weapon.elevel = 
                             cache.attrdb.weapon[roll.weapon.index].elevel;
+                        const range_index = cache.attrdb.weapon[roll.weapon.index].enhancements.findIndex(e => e.name === 'range');
+                        if (range_index !== -1) {
+                            roll.weapon.range = cache.attrdb.weapon[roll.weapon.index].enhancements[range_index].rank;
+                        }
                     }
                     roll.weapon.severity = 
                         roll.is_swarm ? 'damage' : (
