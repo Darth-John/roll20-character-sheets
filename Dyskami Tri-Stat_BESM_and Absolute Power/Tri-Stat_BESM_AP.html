@@ -6789,7 +6789,8 @@
         temp.template = `! ` +
             `{{charname=[[0[@{target|character_name}] ]]}} ` +
             `{{charid=[[0[@{target|character_id}] ]]}} ` +
-            `{{attrdb=[[0[@{target|attrdb}] ]]}}`;
+            `{{attrdb=[[0[@{target|attrdb}] ]]}} ` +
+            `{{defectdb=[[0[@{target|defectdb}] ]]}}`;
         temp.roll = await startRoll(temp.template);
         roll.target.name = 
             temp.roll.results.charname.expression.match(rxGrab)[1];
@@ -6797,6 +6798,8 @@
             temp.roll.results.charid.expression.match(rxGrab)[1];
         roll.target.attrdb = 
             temp.roll.results.attrdb.expression.match(rxGrab)[1];
+        roll.target.defectdb = 
+            temp.roll.results.defectdb.expression.match(rxGrab)[1];
         finishRoll(temp.roll.rollId);
     }
 
@@ -7132,8 +7135,20 @@
                                 const gap_index = roll.target.attrdb.armor[i].limiters.findIndex(c => c.name === 'gap');
                                 if (gap_index !== -1) {
                                     roll.target.has_gap = true;
+                                    i = roll.target.attrdb.armor.length;//=> only support first active armor.
                                 }
-                                i = roll.target.attrdb.armor.length;//=> only support first active armor.
+                            }
+                        }
+                    }
+                    roll.target.has_weak_point = 0;
+                    if (roll.target.defectdb['weak point'].length !== 0) {
+                        for (let i = 0; i < roll.target.defectdb['weak point'].length; i++) {
+                            if (roll.target.defectdb['weak point'][i].active) {
+                                const wp_index = roll.target.defectdb['weak point'][i].limiters.findIndex(c => c.name === 'weak point');
+                                if (wp_index !== -1) {
+                                    roll.target.has_weak_point = roll.target.defectdb['weak point'][i].limiters[wp_index].rank;
+                                    i = roll.target.defectdb['weak point'].length;//=> only support first weak point.
+                                }
                             }
                         }
                     }
@@ -7150,8 +7165,9 @@
                             query.options += roll.target.has_gap ?
                                 `&#124;${getTranslationByKey("reduce-armor")}&#44;reduce armor` : '';
                             query.options +=
-                                `&#124;${getTranslationByKey("vital-spot")}&#44;vital spot` +
-                                `&#124;${getTranslationByKey("weak-point")}&#44;weak point&#125;`;
+                                `&#124;${getTranslationByKey("vital-spot")}&#44;vital spot`;
+                            query.options += roll.target.has_weak_point ?
+                                `&#124;${getTranslationByKey("weak-point")}&#44;weak point&#125;` : '';
                     }
                     if (!roll.weapon.range && cache.rulesdb.rules_optional_maneuvers_status) {
                         query.options +=
@@ -7496,6 +7512,9 @@
                         case 'bypass armor':
                         case 'vital spot':
                             roll.mod.obstacle += 2;
+                        break;
+                        case 'weak point':
+                            roll.mod.obstacle += roll.target.has_weak_point === 1 ? 1 : 2;
                         break;
                     }
                     query.next = query.selection === 'select_weapon' ?
