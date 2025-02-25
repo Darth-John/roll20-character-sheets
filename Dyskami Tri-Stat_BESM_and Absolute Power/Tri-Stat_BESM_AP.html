@@ -7144,11 +7144,8 @@
                     if (roll.target.defectdb['weak point'].length !== 0) {
                         for (let i = 0; i < roll.target.defectdb['weak point'].length; i++) {
                             if (roll.target.defectdb['weak point'][i].active) {
-                                const wp_index = roll.target.defectdb['weak point'][i].limiters.findIndex(c => c.name === 'weak point');
-                                if (wp_index !== -1) {
-                                    roll.target.has_weak_point = roll.target.defectdb['weak point'][i].limiters[wp_index].rank;
-                                    i = roll.target.defectdb['weak point'].length;//=> only support first weak point.
-                                }
+                                roll.target.has_weak_point = roll.target.defectdb['weak point'][i].level;
+                                i = roll.target.defectdb['weak point'].length;//=> only support first weak point.
                             }
                         }
                     }
@@ -7197,6 +7194,7 @@
                     query.title = '';
                     await selectTarget(cache, roll);
                     roll.target.attrdb = JSON.parse(roll.target.attrdb);
+                    roll.target.defectdb = JSON.parse(roll.target.defectdb);
                     query.last = query.next;
                 break;
                 case 'target_number':
@@ -7503,18 +7501,18 @@
                     roll.maneuver = query.selection;
                     switch (roll.maneuver) {
                         case 'disarm':
-                            roll.mod.obstacle += roll.weapon.range === 0 ? 1 : 2;
+                            roll.mod.obstacle -= roll.weapon.range === 0 ? 1 : 2;
                         break;
                         case 'reduce armor':
                         case 'knock out':
-                            roll.mod.obstacle += 1;
+                            roll.mod.obstacle -= 1;
                         break;
                         case 'bypass armor':
                         case 'vital spot':
-                            roll.mod.obstacle += 2;
+                            roll.mod.obstacle -= 2;
                         break;
                         case 'weak point':
-                            roll.mod.obstacle += roll.target.has_weak_point === 1 ? 1 : 2;
+                            roll.mod.obstacle -= roll.target.has_weak_point === 1 ? 1 : 2;
                         break;
                     }
                     query.next = query.selection === 'select_weapon' ?
@@ -7538,6 +7536,11 @@
             case 'defense':
                 roll.name = cache.character_name;
                 roll.pronoun = cache.static_character_details_pronoun;
+                if (roll.type === 'defense') {
+                    if (roll.attacker.target.has_weak_point === 3) {
+                        roll.mod.edge += 1;
+                    }
+                }
                 if (roll.weapon.index !== -1) {
                     const sections = ['config','enhancements','limiters'];
                     const indexes = {
