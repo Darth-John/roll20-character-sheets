@@ -7162,6 +7162,7 @@
                             query.options += roll.target.has_gap ?
                                 `&#124;${getTranslationByKey("reduce-armor")}&#44;reduce armor` : '';
                             query.options +=
+                                `&#124;${getTranslationByKey("specific-location")}&#44;specific location` +
                                 `&#124;${getTranslationByKey("vital-spot")}&#44;vital spot`;
                             query.options += roll.target.has_weak_point ?
                                 `&#124;${getTranslationByKey("weak-point")}&#44;weak point&#125;` : '';
@@ -7176,6 +7177,14 @@
                                 `&#124;${getTranslationByKey("throw")}&#44;throw&#125;`;
                     }
                     query.options += `|${getTranslationByKey("go-back")},select_weapon`;
+                    query.last = query.next;
+                break;
+                case 'specific location':
+                    query.title = `${getTranslationByKey("specify-location")}`;
+                    query.options =
+                        `|${getTranslationByKey("large-spot")},large spot` +
+                        `|${getTranslationByKey("small-spot")},small spot` +
+                        `|${getTranslationByKey("tiny-spot")},tiny spot`;
                     query.last = query.next;
                 break;
                 case 'target_type':
@@ -7197,9 +7206,19 @@
                     roll.target.defectdb = JSON.parse(roll.target.defectdb);
                     query.last = query.next;
                 break;
+                case 'ranged_combat_maneuver':
+                    query.title = `${getTranslationByKey("select-maneuver")}`;
+                    query.options = 
+                        `|${getTranslationByKey("attack")},attack` +
+                        `|${getTranslationByKey("specific-location")},?{${getTranslationByKey("specify-location")}` +
+                        `&#124;${getTranslationByKey("large-spot")}&#44;15` +
+                        `&#124;${getTranslationByKey("small-spot")}&#44;18` +
+                        `&#124;${getTranslationByKey("tiny-spot")}&#44;21&#125;`;
+                    query.last = query.next;
+                break;
                 case 'target_number':
                     query.title = 'Enter Target Number';
-                    query.options = '';
+                    query.options = `|${int(query.tn)}`;
                     query.last = query.next;
                 break;
                 case 'initiative':
@@ -7515,13 +7534,31 @@
                             roll.mod.obstacle -= roll.target.has_weak_point === 1 ? 1 : 2;
                         break;
                     }
-                    query.next = query.selection === 'select_weapon' ?
+                    query.next = 
+                        query.selection === 'select_weapon' ||
+                        query.selection === 'specific location' ? 
                         query.selection : 'is_enemy';
+                break;
+                case 'specific location':
+                    roll.maneuver = query.selection;
+                    roll.target.specific_location = 
+                        roll.maneuver === 'large spot' ? 1 :
+                        roll.maneuver === 'small spot' ? 2 : 3;
+                    roll.mod.obstacle -= roll.target.specific_location === 1 ? 1 : 2;
+                    query.next = 'is_enemy';
                 break;
                 case 'target_type':
                     query.target = query.selection;
                     roll.target_type = query.selection;
-                    query.next = query.selection;
+                    query.next = (
+                        query.target === 'target_number' &&
+                        cache.rulesdb.rules_optional_maneuvers_status &&
+                        roll.weapon.range
+                    ) ? 'ranged_combat_maneuver' : query.selection;
+                break;
+                case 'ranged_combat_maneuver':
+                    query.tn = query.selection;
+                    query.next = 'target_number';
                 break;
                 case 'target_number':
                     roll.target.number = int(query.selection);
@@ -7537,7 +7574,10 @@
                 roll.name = cache.character_name;
                 roll.pronoun = cache.static_character_details_pronoun;
                 if (roll.type === 'defense') {
-                    if (roll.attacker.target.has_weak_point === 3) {
+                    if (
+                        roll.attacker.target.has_weak_point === 3 ||
+                        roll.attacker.target.specific_location === 3
+                    ) {
                         roll.mod.edge += 1;
                     }
                 }
