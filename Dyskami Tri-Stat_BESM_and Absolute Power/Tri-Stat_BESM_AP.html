@@ -7159,13 +7159,16 @@
                                 `&#124;${getTranslationByKey("bypass-armor")}&#44;bypass armor` : '';
                             query.options += 
                                 `&#124;${getTranslationByKey("disarm")}&#44;disarm`;
+                            query.options += cache.rulesdb.rules_optional_knockout_status ?
+                                `&#124;${getTranslationByKey("knockout")}&#44;knockout` : '';
                             query.options += roll.target.has_gap ?
                                 `&#124;${getTranslationByKey("reduce-armor")}&#44;reduce armor` : '';
                             query.options +=
                                 `&#124;${getTranslationByKey("specific-location")}&#44;specific location` +
                                 `&#124;${getTranslationByKey("vital-spot")}&#44;vital spot`;
                             query.options += roll.target.has_weak_point ?
-                                `&#124;${getTranslationByKey("weak-point")}&#44;weak point&#125;` : '';
+                                `&#124;${getTranslationByKey("weak-point")}&#44;weak point` : '';
+                            query.options += '&#125;';
                     }
                     if (!roll.weapon.range && cache.rulesdb.rules_optional_maneuvers_status) {
                         query.options +=
@@ -7522,8 +7525,9 @@
                         case 'disarm':
                             roll.mod.obstacle -= roll.weapon.range === 0 ? 1 : 2;
                         break;
+                        case 'knockout':
+                            roll.weapon.severity = 'stun';
                         case 'reduce armor':
-                        case 'knock out':
                             roll.mod.obstacle -= 1;
                         break;
                         case 'bypass armor':
